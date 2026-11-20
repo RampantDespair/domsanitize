@@ -174,7 +174,7 @@ export function handleTagAttributeValueError(
 ): boolean {
   switch (errorHandlingMode) {
     case "applyDefaultValue":
-      if (rule.defaultValue) {
+      if (rule.defaultValue !== undefined) {
         element.attribs[attribute.key] = rule.defaultValue;
       } else {
         const { [attribute.key]: _, ...rest } = element.attribs;
