@@ -103,7 +103,8 @@ export function buildAllowedUrlRegex(
   const hostPart = hosts.length ? hostPatternFromList(hosts) : hostFallback;
 
   const absolutePart = `${protoPart}://${hostPart}`;
-  const relativePart = allowRelative ? String.raw`|(?:/[^\s]*)` : "";
+  // A second slash or backslash starts an authority instead of a relative path.
+  const relativePart = allowRelative ? String.raw`|(?:/(?![/\\])[^\s]*)` : "";
 
   const pattern = `^(?:${absolutePart}${relativePart})$`;
   return new RegExp(pattern, "i");
