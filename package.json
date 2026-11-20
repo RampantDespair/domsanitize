@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "domsanitize",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Declarative schema-based HTML attribute validation. Define which tags, attributes, and values are allowed and enforce them.",
   "keywords": [
     "allowlist",
@@ -121,11 +121,15 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "clean": "rimraf dist",
     "lint": "npx eslint .",
     "lint:fix": "npx eslint . --fix",
+    "prepack": "npm run build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
