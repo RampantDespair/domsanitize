@@ -37,7 +37,9 @@ export function matchComparator(
   }
   // RegExp
   if (cmp instanceof RegExp) {
-    return cmp.test(value);
+    // Stateful regexes must start fresh without changing the caller's lastIndex.
+    const matcher = cmp.global || cmp.sticky ? new RegExp(cmp.source, cmp.flags) : cmp;
+    return matcher.test(value);
   }
   // Exact string
   if (typeof cmp === "string") {
