@@ -2,9 +2,9 @@ import type { SchemaOptions } from "./types/schema";
 import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 
 import { parseFragment, serialize } from "parse5";
-import { adapter } from "parse5-htmlparser2-tree-adapter";
 
 import { handleTagChildrenError } from "./lib/handlers/direct";
+import { treeAdapter } from "./lib/tree-adapter";
 import { walkNode } from "./lib/walker";
 
 /**
@@ -102,7 +102,7 @@ export function enforceHtml(html: string, options: SchemaOptions): string {
 
   const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
     html,
-    { treeAdapter: adapter },
+    { treeAdapter },
   );
 
   if (
@@ -143,5 +143,5 @@ export function enforceHtml(html: string, options: SchemaOptions): string {
     }
   }
 
-  return serialize(frag, { treeAdapter: adapter });
+  return serialize(frag, { treeAdapter });
 }
