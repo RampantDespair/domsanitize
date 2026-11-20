@@ -451,7 +451,7 @@ export function handleTagChildrenError(
     }
     case "throwError":
     default:
-      if ("tagName" in element) {
+      if (adapter.isElementNode(element)) {
         throw new Error(
           `Tag ${element.tagName} has exceeded the maximum allowed number of children of ${maxChildren}`,
         );
@@ -506,7 +506,7 @@ export function handleTagNestingError(
       return false;
     case "throwError":
     default:
-      if ("tagName" in element) {
+      if (adapter.isElementNode(element)) {
         throw new Error(
           `Tag ${element.tagName} has exceeded the maximum nesting level of ${maxNesting}`,
         );

@@ -98,7 +98,7 @@ export function enforceRequiredAttributes(
       continue;
     }
 
-    if (rule.required && !(attrName in element.attribs)) {
+    if (rule.required && !Object.hasOwn(element.attribs, attrName)) {
       if (
         !handleTagAttributeValueError(
           { key: attrName, value: "" },
@@ -175,7 +175,10 @@ export function enforceAttributes(
   // Validate all present attributes against scoped rule or "*" fallback.
   for (const name of keys) {
     const value = attributes[name];
-    const rule = rules?.[name] ?? rules?.["*"];
+    const rule = rules
+      ? (Object.hasOwn(rules, name) ? rules[name] : undefined) ??
+      (Object.hasOwn(rules, "*") ? rules["*"] : undefined)
+      : undefined;
 
     const { globalProceed, localProceed } = enforceAttribute(
       { key: name, value },

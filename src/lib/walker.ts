@@ -167,7 +167,10 @@ function walkElement(
   state: SchemaState,
 ) {
   const tagName = element.tagName;
-  const tagRule = options.tags?.[tagName];
+  const tagRule =
+    options.tags && Object.hasOwn(options.tags, tagName)
+      ? options.tags[tagName]
+      : undefined;
 
   // Tag enforcement
   if (!enforceTag(element, tagRule, options.errorHandling?.tag)) {
@@ -206,7 +209,10 @@ function walkElement(
     const tagNameNested = tagDepth[i].key;
     tagDepth[i].value++;
 
-    const tagRuleNested = options.tags?.[tagNameNested];
+    const tagRuleNested =
+      options.tags && Object.hasOwn(options.tags, tagNameNested)
+        ? options.tags[tagNameNested]
+        : undefined;
     if (!tagRuleNested?.limits?.nesting) {
       continue;
     }

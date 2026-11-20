@@ -93,7 +93,9 @@ export function enforceAttributeRecordValue(
   let output: TagAttributeValueRecord = [];
 
   for (const [index, { key, val }] of input.entries()) {
-    const pairRule = rule.values[key];
+    const pairRule = Object.hasOwn(rule.values, key)
+      ? rule.values[key]
+      : undefined;
 
     if (seen.has(key)) {
       const result = handleTagAttributeRecordValueDuplicateError(
