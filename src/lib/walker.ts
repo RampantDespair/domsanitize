@@ -106,6 +106,7 @@ export function walkNode(
  * 3. Children count enforcement
  * 4. Tag nesting depth enforcement
  * 5. Recursive processing of child nodes
+ * 6. Children count recheck after unwrapping
  *
  * @param element - The HTML element node to process
  * @param options - Schema configuration options
@@ -157,6 +158,7 @@ export function walkNode(
  * 3. **Children Enforcement**: Checks if the element has too many children
  * 4. **Nesting Enforcement**: Validates nesting depth for all parent tags in the hierarchy
  * 5. **Recursive Processing**: Walks through all child nodes with updated state
+ * 6. **Children Recheck**: Enforces the child limit after unwrapping descendants
  *
  * If any validation step fails and the error handling strategy indicates to stop processing,
  * the function returns early without processing child nodes.
@@ -238,5 +240,17 @@ function walkElement(
     const next = child.nextSibling;
     walkNode(child, options, newState);
     child = next;
+  }
+
+  // Unwrapping during traversal can increase this element's child count.
+  if (
+    tagRule.limits?.children !== undefined &&
+    childContainer.children.length > tagRule.limits.children
+  ) {
+    handleTagChildrenError(
+      element,
+      tagRule.limits.children,
+      options.errorHandling?.tagChildren,
+    );
   }
 }

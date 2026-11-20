@@ -127,5 +127,21 @@ export function enforceHtml(html: string, options: SchemaOptions): string {
     child = next;
   }
 
+  // Unwrapping during traversal can increase the number of root children.
+  if (
+    options.topLevelLimits?.children !== undefined &&
+    frag.children.length > options.topLevelLimits.children
+  ) {
+    if (
+      !handleTagChildrenError(
+        frag,
+        options.topLevelLimits.children,
+        options.errorHandling?.tagChildren,
+      )
+    ) {
+      return "";
+    }
+  }
+
   return serialize(frag, { treeAdapter: adapter });
 }
