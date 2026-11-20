@@ -130,7 +130,7 @@ export function enforceAttributeRecordValue(
       }
     }
 
-    if (!pairRule || !matchComparator(pairRule, val)) {
+    if (pairRule === undefined || !matchComparator(pairRule, val)) {
       const proceed = handleTagAttributeRecordValueError(
         attribute,
         element,
