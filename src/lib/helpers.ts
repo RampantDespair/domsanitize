@@ -1,7 +1,27 @@
 import type { TagAttributeValueComparator } from "../types/comparators";
 import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 
+import { html } from "parse5";
 import { adapter } from "parse5-htmlparser2-tree-adapter";
+
+// HTML templates store their children in a separate content fragment.
+export function getChildContainer(
+  node:
+    | Htmlparser2TreeAdapterMap["document"]
+    | Htmlparser2TreeAdapterMap["element"],
+):
+  | Htmlparser2TreeAdapterMap["documentFragment"]
+  | Htmlparser2TreeAdapterMap["element"] {
+  if (
+    adapter.isElementNode(node) &&
+    node.tagName === "template" &&
+    adapter.getNamespaceURI(node) === html.NS.HTML
+  ) {
+    return adapter.getTemplateContent(node);
+  }
+
+  return node;
+}
 
 export function matchComparator(
   cmp: TagAttributeValueComparator,
@@ -100,7 +120,8 @@ export function parseSet(input: string, delimiter: string): string[] {
 export function unwrapInParent(
   element: Htmlparser2TreeAdapterMap["element"],
 ): void {
-  if (element.children.length === 0) {
+  const { children } = getChildContainer(element);
+  if (children.length === 0) {
     adapter.detachNode(element);
     return;
   }
@@ -112,7 +133,7 @@ export function unwrapInParent(
   }
 
   const next = element.nextSibling;
-  for (const child of element.children) {
+  for (const child of children) {
     if (next) {
       adapter.insertBefore(parent, child, next);
     } else {

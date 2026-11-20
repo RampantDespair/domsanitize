@@ -9,6 +9,7 @@ import {
   handleTagChildrenError,
   handleTagNestingError,
 } from "./handlers/direct";
+import { getChildContainer } from "./helpers";
 
 /**
  * Recursively walks through HTML nodes and applies schema enforcement rules.
@@ -72,7 +73,7 @@ export function walkNode(
 
     const parent = node.parentNode;
     const nextSibling = node.nextSibling;
-    let child = node.firstChild;
+    let child = getChildContainer(node).firstChild;
 
     walkElement(node, options, {
       ...state,
@@ -178,10 +179,12 @@ function walkElement(
     return;
   }
 
+  const childContainer = getChildContainer(element);
+
   // Children enforcement
   if (
     tagRule.limits?.children &&
-    element.children.length > tagRule.limits.children
+    childContainer.children.length > tagRule.limits.children
   ) {
     if (
       !handleTagChildrenError(
@@ -224,7 +227,7 @@ function walkElement(
   };
 
   // Children traversal
-  let child = element.firstChild;
+  let child = childContainer.firstChild;
   while (child) {
     const next = child.nextSibling;
     walkNode(child, options, newState);

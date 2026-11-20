@@ -19,7 +19,7 @@ import type { ReadonlyDeep } from "type-fest";
 
 import { adapter } from "parse5-htmlparser2-tree-adapter";
 
-import { unwrapInParent } from "../helpers";
+import { getChildContainer, unwrapInParent } from "../helpers";
 
 /**
  * Handles general tag errors by applying the specified error handling strategy.
@@ -417,7 +417,8 @@ export function handleTagChildrenError(
   maxChildren: number,
   errorHandlingMode?: TagChildrenErrorHandlingMode,
 ): boolean {
-  const { children } = element;
+  const childContainer = getChildContainer(element);
+  const { children } = childContainer;
   const len = children.length;
   const excess = Math.max(0, len - maxChildren);
 
@@ -429,7 +430,7 @@ export function handleTagChildrenError(
     case "discardFirsts": {
       if (excess > 0) {
         for (let i = 0; i < excess; i++) {
-          const first = element.children.at(0);
+          const first = childContainer.children.at(0);
           if (first) {
             adapter.detachNode(first);
           }
@@ -440,7 +441,7 @@ export function handleTagChildrenError(
     case "discardLasts": {
       if (excess > 0) {
         for (let i = 0; i < excess; i++) {
-          const last = element.children.at(-1);
+          const last = childContainer.children.at(-1);
           if (last) {
             adapter.detachNode(last);
           }
