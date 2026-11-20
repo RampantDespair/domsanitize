@@ -106,7 +106,7 @@ export function enforceHtml(html: string, options: SchemaOptions): string {
   );
 
   if (
-    options.topLevelLimits?.children &&
+    options.topLevelLimits?.children !== undefined &&
     frag.children.length > options.topLevelLimits.children
   ) {
     if (

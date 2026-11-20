@@ -73,7 +73,7 @@ export function enforceAttributeRecordValue(
     rule.keyValueSeparator,
   );
 
-  if (rule.maxEntries && input.length > rule.maxEntries) {
+  if (rule.maxEntries !== undefined && input.length > rule.maxEntries) {
     const result = handleTagAttributeCollectionValueTooManyError(
       attribute,
       element,
@@ -200,7 +200,7 @@ export function enforceAttributeSetValue(
 ): boolean {
   let input = parseSet(attribute.value, rule.delimiter);
 
-  if (rule.maxEntries && input.length > rule.maxEntries) {
+  if (rule.maxEntries !== undefined && input.length > rule.maxEntries) {
     const result = handleTagAttributeCollectionValueTooManyError(
       attribute,
       element,
@@ -328,7 +328,7 @@ export function enforceAttributeValue(
   rule: ReadonlyDeep<TagAttributeValueRule>,
   errorHandling?: ErrorHandling,
 ): boolean {
-  if (rule.maxLength && attribute.value.length > rule.maxLength) {
+  if (rule.maxLength !== undefined && attribute.value.length > rule.maxLength) {
     if (
       !handleTagAttributeValueTooLongError(
         attribute,
@@ -342,7 +342,7 @@ export function enforceAttributeValue(
 
     attribute.value = element.attribs[attribute.key];
 
-    if (!attribute.value) {
+    if (!Object.hasOwn(element.attribs, attribute.key)) {
       return true;
     }
   }

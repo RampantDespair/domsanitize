@@ -60,7 +60,7 @@ export function walkNode(
 ) {
   if (adapter.isElementNode(node)) {
     if (
-      options.topLevelLimits?.nesting &&
+      options.topLevelLimits?.nesting !== undefined &&
       state.rootNesting > options.topLevelLimits.nesting
     ) {
       handleTagNestingError(
@@ -186,7 +186,7 @@ function walkElement(
 
   // Children enforcement
   if (
-    tagRule.limits?.children &&
+    tagRule.limits?.children !== undefined &&
     childContainer.children.length > tagRule.limits.children
   ) {
     if (
@@ -213,7 +213,7 @@ function walkElement(
       options.tags && Object.hasOwn(options.tags, tagNameNested)
         ? options.tags[tagNameNested]
         : undefined;
-    if (!tagRuleNested?.limits?.nesting) {
+    if (tagRuleNested?.limits?.nesting === undefined) {
       continue;
     }
 
