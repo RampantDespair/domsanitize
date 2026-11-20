@@ -82,8 +82,12 @@ export function enforceAttributeRecordValue(
       errorHandling?.attributeCollectionValueTooMany,
     );
 
-    if (!result.proceed) {
-      return false;
+    // Only dropping excess entries continues validation of this attribute.
+    if (
+      !result.proceed ||
+      errorHandling?.attributeCollectionValueTooMany !== "dropExtra"
+    ) {
+      return result.proceed;
     }
 
     input = result.output;
@@ -111,6 +115,14 @@ export function enforceAttributeRecordValue(
         return false;
       }
 
+      // Attribute-level recovery is final; do not overwrite it with the record.
+      if (
+        errorHandling?.attributeRecordValueDuplicate === "discardAttribute" ||
+        errorHandling?.attributeRecordValueDuplicate === "applyDefaultValue"
+      ) {
+        return true;
+      }
+
       output = result.output;
 
       if (!result.localProceed) {
@@ -119,17 +131,16 @@ export function enforceAttributeRecordValue(
     }
 
     if (!pairRule || !matchComparator(pairRule, val)) {
-      if (
-        !handleTagAttributeRecordValueError(
-          attribute,
-          element,
-          input,
-          index,
-          rule,
-          errorHandling?.attributeRecordValue,
-        )
-      ) {
-        return false;
+      const proceed = handleTagAttributeRecordValueError(
+        attribute,
+        element,
+        input,
+        index,
+        rule,
+        errorHandling?.attributeRecordValue,
+      );
+      if (!proceed || errorHandling?.attributeRecordValue !== "dropPair") {
+        return proceed;
       }
       continue;
     }
@@ -198,8 +209,12 @@ export function enforceAttributeSetValue(
       errorHandling?.attributeCollectionValueTooMany,
     );
 
-    if (!result.proceed) {
-      return false;
+    // Only dropping excess entries continues validation of this attribute.
+    if (
+      !result.proceed ||
+      errorHandling?.attributeCollectionValueTooMany !== "dropExtra"
+    ) {
+      return result.proceed;
     }
 
     input = result.output;
@@ -210,17 +225,18 @@ export function enforceAttributeSetValue(
   for (const [index, val] of input.entries()) {
     if (matchComparator(rule.values, val)) {
       output.push(val);
-    } else if (
-      !handleTagAttributeSetValueError(
+    } else {
+      const proceed = handleTagAttributeSetValueError(
         attribute,
         element,
         index,
         input,
         rule,
         errorHandling?.attributeSetValue,
-      )
-    ) {
-      return false;
+      );
+      if (!proceed || errorHandling?.attributeSetValue !== "dropValue") {
+        return proceed;
+      }
     }
   }
 
