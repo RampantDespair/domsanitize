@@ -70,10 +70,25 @@ export function walkNode(
       return;
     }
 
+    const parent = node.parentNode;
+    const nextSibling = node.nextSibling;
+    let child = node.firstChild;
+
     walkElement(node, options, {
       ...state,
       rootNesting: state.rootNesting + 1,
     });
+
+    // Unwrapping promotes children into the parent; discarding leaves them attached
+    // to the removed node. Validate promoted children at the removed node's depth.
+    if (parent && !node.parentNode && child?.parentNode === parent) {
+      while (child && child !== nextSibling) {
+        const next: Htmlparser2TreeAdapterMap["childNode"] | null =
+          child.nextSibling;
+        walkNode(child, options, state);
+        child = next;
+      }
+    }
   } else if (adapter.isCommentNode(node) && !options.preserveComments) {
     adapter.detachNode(node);
   } else {
