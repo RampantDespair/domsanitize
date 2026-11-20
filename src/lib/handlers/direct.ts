@@ -116,8 +116,7 @@ export function handleTagAttributeError(
 ): boolean {
   switch (errorHandlingMode) {
     case "discardAttribute": {
-      const { [attribute.key]: _, ...rest } = element.attribs;
-      element.attribs = rest;
+      Reflect.deleteProperty(element.attribs, attribute.key);
       return true;
     }
     default:
@@ -177,8 +176,7 @@ export function handleTagAttributeValueError(
       if (rule.defaultValue !== undefined) {
         element.attribs[attribute.key] = rule.defaultValue;
       } else {
-        const { [attribute.key]: _, ...rest } = element.attribs;
-        element.attribs = rest;
+        Reflect.deleteProperty(element.attribs, attribute.key);
       }
       return true;
     default:
