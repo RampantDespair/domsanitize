@@ -153,18 +153,24 @@ HTML comments are stripped by default. Pass `preserveComments: true` to retain t
 domsanitize ships with ready-made rules for all standard HTML global attributes, shared attributes, and common value types (integers, floats, URLs, MIME types, BCP 47 language tags, dates, and more) so you don't have to write them from scratch.
 
 ```typescript
-import { defaultGlobalAttributes, defaultOtherAttributes } from "domsanitize/defaults";
+import { enforceHtml } from "domsanitize";
+import { defaultGlobalAttributes } from "domsanitize/defaults/attributes/globals";
+import { defaultOtherAttributes } from "domsanitize/defaults/attributes/others";
+import { defaultSharedAttributes } from "domsanitize/defaults/attributes/shared";
 
-tags: {
-  a: {
-    attributes: {
-      ...defaultGlobalAttributes,
-      href: defaultOtherAttributes.url,
-      target: defaultOtherAttributes.target,
-      rel: defaultSharedAttributes.rel,
+const html = '<a class="link" href="https://example.com" rel="noopener">Link</a>';
+const result = enforceHtml(html, {
+  tags: {
+    a: {
+      attributes: {
+        ...defaultGlobalAttributes,
+        href: defaultOtherAttributes.url,
+        target: defaultOtherAttributes.target,
+        rel: defaultSharedAttributes.rel,
+      },
     },
   },
-}
+});
 ```
 
 ### URL Allowlisting
