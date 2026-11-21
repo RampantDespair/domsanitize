@@ -205,22 +205,33 @@ const result = enforceHtml("<p>Hello</p>", { tags: { p: {} } });
 
 The factory parses fragments in a detached document without changing the supplied window's document. In Node.js, pass `new JSDOM("").window` as the window.
 
-### Using DOMPurify with the same window
+### Using DOMPurify with one jsdom window
+
+For the Node.js pipeline `input -> domsanitize -> DOMPurify -> database`, initialize one jsdom window and both factories once at module scope, outside the request handler:
 
 ```typescript
 import createDOMPurify from "dompurify";
-import { createEnforcer } from "domsanitize/core";
+import { createEnforcer, type SchemaOptions } from "domsanitize/core";
+import { JSDOM } from "jsdom";
 
+const { window } = new JSDOM("");
 const enforceHtml = createEnforcer(window);
 const DOMPurify = createDOMPurify(window);
-const conformed = enforceHtml('<a href="https://example.com">Link</a>', {
+const schema: SchemaOptions = {
   errorHandling: { attribute: "discardAttribute", tag: "unwrapElement" },
   tags: { a: { attributes: { href: { mode: "simple", value: "*" } } } },
-});
-const clean = DOMPurify.sanitize(conformed);
+};
+
+// Call per request and store the returned string in the database.
+export function prepareHtml(input: string): string {
+  const conformed = enforceHtml(input, schema);
+  return DOMPurify.sanitize(conformed);
+}
 ```
 
-For Node.js, create `window` with `new JSDOM("").window` and pass it to both factories. DOMPurify is an optional integration, not a runtime dependency of domsanitize.
+This explicitly shares one jsdom window across both libraries and subsequent requests in that Node process. Merely running in the same process does not share the window: the default `enforceHtml` import from `domsanitize` creates its own private environment. Use `domsanitize/core` and pass the existing window to avoid creating a second jsdom instance.
+
+The libraries still parse strings separately; sharing a window does not share a parsed tree or eliminate parsing and serialization. DOMPurify is an optional integration, not a runtime dependency of domsanitize.
 
 Run purification after the last schema mutation. A schema can introduce an unsafe default even when its input was already purified; DOMPurify [warns that later modifications can undo sanitization](https://github.com/cure53/DOMPurify#is-there-any-foot-gun-potential). Final purification can remove required attributes or elements, so the final result is not guaranteed to satisfy every schema constraint. Do not reapply unsafe defaults after purification.
 
@@ -292,6 +303,35 @@ console.log(result);
 //   <a href="https://example.com" target="_blank" rel="noopener">Link</a>
 // </div>
 ```
+
+## Node.js performance
+
+A standalone domsanitize benchmark on Node 24.22.3 (Linux x64, AMD Ryzen 7 5700G) compared the last parse5 implementation (`a9c59b7`) with the DOM implementation (`fce6324`). Both used equivalent minified CommonJS builds and returned identical results for every workload.
+
+These measurements do not include DOMPurify or use a shared window. The current implementation pays for importing jsdom and creating its window, whereas the previous standalone implementation does not need jsdom. In the combined pipeline above, DOMPurify already needs jsdom. The differences below therefore do not measure the incremental startup or memory cost of switching that pipeline, and the warm-call ratios are not end-to-end pipeline ratios. That shared-window comparison has not been measured.
+
+| Measurement | Previous parse5 implementation | Current jsdom implementation |
+| --- | ---: | ---: |
+| Fresh-process import + first call | 26.2 ms | 442.5 ms |
+| Warm call, 190-byte fragment | 0.087 ms | 0.271 ms |
+| Warm call, 9,500-byte fragment | 3.55 ms | 10.53 ms |
+| Warm call, 190,000-byte fragment | 64.5 ms | 152.7 ms |
+| Heap retained after 5,000 small calls and GC | 6.43 MiB | 31.80 MiB |
+| Process peak RSS for the large workload | 239.6 MiB | 344.1 MiB |
+
+Startup is the median of seven fresh processes per implementation, excluding Node process launch and worker setup. Warm results are the median of three process medians, each containing seven timed batches after warmup. Memory is the median across three processes. The filesystem cache was not flushed. The large input repeats the same structured fragment 1,000 times, so this is a synthetic comparison, not a production latency guarantee or a native-browser performance result.
+
+For standalone Node use, the migration adds substantial startup cost and makes these warm workloads roughly 2.4-3.1 times slower. Retained heap stayed near 32 MiB from 1,000 through 5,000 calls; this test did not show sustained heap growth. Process RSS can remain high after GC and is distinct from live heap.
+
+The default Node enforcer reuses its DOM environment after the first nonempty call. Applications already owning a jsdom window can pass it to `createEnforcer` from `domsanitize/core` to avoid creating another window; the shared-window startup cost was not measured here.
+
+Raw samples, artifact hashes, dependency versions, and build settings are in [the benchmark results](benchmarks/results/node-24.22.3.json). To compare two prepared CommonJS entrypoints using the same isolated-process harness:
+
+```bash
+npx tsx benchmarks/compare.mts /path/to/legacy/index.cjs /path/to/current/index.cjs /tmp/domsanitize-performance.json
+```
+
+Bundle each revision's `src/index.ts` with the recorded build settings, keeping its runtime dependencies external and resolvable beside the bundle. The harness compiles its worker before measurements, alternates implementation order, and verifies output equality. Run it without competing test/build jobs.
 
 ## Running tests
 
