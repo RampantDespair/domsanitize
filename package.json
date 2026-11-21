@@ -134,6 +134,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "jsdom": "^31.0.1",
     "parse5": "^8.1.1",
     "parse5-htmlparser2-tree-adapter": "^8.0.2"
   },
@@ -141,6 +142,7 @@
     "@eslint/config-inspector": "^3.5.0",
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^6.0.1",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.1",
     "@vitest/ui": "^5.1.1",
@@ -163,7 +165,7 @@
   },
   "packageManager": "npm@12.2.3",
   "engines": {
-    "node": ">=24.0.0"
+    "node": "^24.15.0 || >=26.0.0"
   },
   "publishConfig": {
     "access": "public"

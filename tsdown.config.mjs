@@ -3,7 +3,7 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
   clean: true,
   deps: {
-    neverBundle: ["parse5", "parse5-htmlparser2-tree-adapter", "postcss"],
+    neverBundle: ["jsdom", "parse5", "parse5-htmlparser2-tree-adapter", "postcss"],
   },
   dts: true,
   entry: [

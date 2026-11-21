@@ -143,8 +143,8 @@ export const htmlOutputFixtures: HtmlOutputFixture[] = [
   {
     expected: "<noscript><p title=\"literal\">fallback</p></noscript>",
     input: "<noscript><p title=\"literal\">fallback</p></noscript>",
-    // jsdom 31.0.1 template serialization escapes this text. Review that
-    // migration difference explicitly instead of silently changing this baseline.
+    // A template in jsdom 31.0.1's main document escapes this text.
+    // The DOM environment uses a detached document to preserve this baseline.
     name: "noscript markup is text even without a p rule",
     options: allowTags("noscript"),
   },
