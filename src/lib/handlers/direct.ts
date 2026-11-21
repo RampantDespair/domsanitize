@@ -14,11 +14,9 @@ import type {
   TagAttributeValueRule,
 } from "../../types/rules";
 import type { TagAttribute } from "../../types/tag";
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 import type { ReadonlyDeep } from "type-fest";
 
-import { adapter } from "parse5-htmlparser2-tree-adapter";
-
+import { isElementNode, removeNode, setAttributeValue } from "../dom/nodes";
 import { getChildContainer, unwrapInParent } from "../helpers";
 
 /**
@@ -60,20 +58,20 @@ import { getChildContainer, unwrapInParent } from "../helpers";
  * @throws {Error} Throws an error if `errorHandlingMode` is "throwError"
  */
 export function handleTagError(
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   errorHandlingMode?: TagErrorHandlingMode,
   errorMessage?: string,
 ): boolean {
   switch (errorHandlingMode) {
     case "discardElement":
-      adapter.detachNode(element);
+      removeNode(element);
       return false;
     case "unwrapElement":
       unwrapInParent(element);
       return false;
     case "throwError":
     default:
-      throw new Error(errorMessage ?? `Tag ${element.tagName} is not allowed`);
+      throw new Error(errorMessage ?? `Tag ${element.localName} is not allowed`);
   }
 }
 
@@ -110,13 +108,13 @@ export function handleTagError(
  */
 export function handleTagAttributeError(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   errorHandlingMode?: TagAttributeErrorHandlingMode,
   errorMessage?: string,
 ): boolean {
   switch (errorHandlingMode) {
     case "discardAttribute": {
-      Reflect.deleteProperty(element.attribs, attribute.key);
+      element.removeAttribute(attribute.key);
       return true;
     }
     default:
@@ -161,12 +159,12 @@ export function handleTagAttributeError(
  *   rule,
  *   "applyDefaultValue"
  * );
- * // element.attribs.href is now "https://example.com"
+ * // element.getAttribute("href") is now "https://example.com"
  * ```
  */
 export function handleTagAttributeValueError(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rule: ReadonlyDeep<TagAttributeValueRule>,
   errorHandlingMode?: TagAttributeValueErrorHandlingMode,
   errorMessage?: string,
@@ -174,9 +172,9 @@ export function handleTagAttributeValueError(
   switch (errorHandlingMode) {
     case "applyDefaultValue":
       if (rule.defaultValue !== undefined) {
-        element.attribs[attribute.key] = rule.defaultValue;
+        setAttributeValue(element, attribute.key, rule.defaultValue);
       } else {
-        Reflect.deleteProperty(element.attribs, attribute.key);
+        element.removeAttribute(attribute.key);
       }
       return true;
     default:
@@ -232,7 +230,7 @@ export function handleTagAttributeValueError(
  */
 export function handleTagAttributeRecordValueError(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   record: { key: string; val: string; }[],
   index: number,
   rule: ReadonlyDeep<TagAttributeRecordValueRule>,
@@ -292,7 +290,7 @@ export function handleTagAttributeRecordValueError(
  */
 export function handleTagAttributeSetValueError(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   index: number,
   set: string[],
   rule: ReadonlyDeep<TagAttributeSetValueRule>,
@@ -347,19 +345,19 @@ export function handleTagAttributeSetValueError(
  *   rule,
  *   "trimExcess"
  * );
- * // element.attribs.title is now "This is a very long"
+ * // element.getAttribute("title") is now "This is a very long"
  * ```
  */
 export function handleTagAttributeValueTooLongError(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rule: ReadonlyDeep<TagAttributeValueRule>,
   errorHandlingMode?: TagAttributeValueTooLongErrorHandlingMode,
   errorMessage?: string,
 ): boolean {
   switch (errorHandlingMode) {
     case "trimExcess":
-      element.attribs[attribute.key] = attribute.value.slice(0, rule.maxLength);
+      setAttributeValue(element, attribute.key, attribute.value.slice(0, rule.maxLength));
       return true;
     default:
       return handleTagAttributeValueError(
@@ -410,27 +408,27 @@ export function handleTagAttributeValueTooLongError(
  */
 export function handleTagChildrenError(
   element:
-    | Htmlparser2TreeAdapterMap["document"]
-    | Htmlparser2TreeAdapterMap["element"],
+    | Document | DocumentFragment
+    | Element,
   maxChildren: number,
   errorHandlingMode?: TagChildrenErrorHandlingMode,
 ): boolean {
   const childContainer = getChildContainer(element);
-  const { children } = childContainer;
+  const children = childContainer.childNodes;
   const len = children.length;
   const excess = Math.max(0, len - maxChildren);
 
   switch (errorHandlingMode) {
     case "discardElement": {
-      adapter.detachNode(element);
+      removeNode(element);
       return false;
     }
     case "discardFirsts": {
       if (excess > 0) {
         for (let i = 0; i < excess; i++) {
-          const first = childContainer.children.at(0);
+          const first = childContainer.firstChild;
           if (first) {
-            adapter.detachNode(first);
+            removeNode(first);
           }
         }
       }
@@ -439,9 +437,9 @@ export function handleTagChildrenError(
     case "discardLasts": {
       if (excess > 0) {
         for (let i = 0; i < excess; i++) {
-          const last = childContainer.children.at(-1);
+          const last = childContainer.lastChild;
           if (last) {
-            adapter.detachNode(last);
+            removeNode(last);
           }
         }
       }
@@ -449,9 +447,9 @@ export function handleTagChildrenError(
     }
     case "throwError":
     default:
-      if (adapter.isElementNode(element)) {
+      if (isElementNode(element)) {
         throw new Error(
-          `Tag ${element.tagName} has exceeded the maximum allowed number of children of ${maxChildren}`,
+          `Tag ${element.localName} has exceeded the maximum allowed number of children of ${maxChildren}`,
         );
       } else {
         throw new Error(
@@ -493,20 +491,20 @@ export function handleTagChildrenError(
  */
 export function handleTagNestingError(
   element:
-    | Htmlparser2TreeAdapterMap["document"]
-    | Htmlparser2TreeAdapterMap["element"],
+    | Document | DocumentFragment
+    | Element,
   maxNesting: number,
   errorHandlingMode?: TagNestingErrorHandlingMode,
 ): false {
   switch (errorHandlingMode) {
     case "discardElement":
-      adapter.detachNode(element);
+      removeNode(element);
       return false;
     case "throwError":
     default:
-      if (adapter.isElementNode(element)) {
+      if (isElementNode(element)) {
         throw new Error(
-          `Tag ${element.tagName} has exceeded the maximum nesting level of ${maxNesting}`,
+          `Tag ${element.localName} has exceeded the maximum nesting level of ${maxNesting}`,
         );
       } else {
         throw new Error(

@@ -11,7 +11,6 @@ import type {
   TagAttributeValueCollection,
   TagAttributeValueRecord,
 } from "../../types/tag";
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 import type { ReadonlyDeep } from "type-fest";
 
 import { handleTagAttributeValueError } from "./direct";
@@ -98,7 +97,7 @@ export function handleTagAttributeCollectionValueTooManyError<
   T extends TagAttributeValueCollection,
 >(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   collection: T,
   rule: ReadonlyDeep<TagAttributeCollectionValueRule>,
   errorHandlingMode?: TagAttributeCollectionValueTooManyErrorHandlingMode,
@@ -223,7 +222,7 @@ export function handleTagAttributeCollectionValueTooManyError<
  */
 export function handleTagAttributeRecordValueDuplicateError(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   key: string,
   record: TagAttributeValueRecord,
   rule: ReadonlyDeep<TagAttributeRecordValueRule>,

@@ -7,9 +7,9 @@ import type {
 } from "../../types/rules";
 import type { ErrorHandling } from "../../types/schema";
 import type { TagAttribute, TagAttributeValueRecord } from "../../types/tag";
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 import type { ReadonlyDeep } from "type-fest";
 
+import { setAttributeValue } from "../dom/nodes";
 import {
   handleTagAttributeRecordValueError,
   handleTagAttributeSetValueError,
@@ -57,13 +57,13 @@ import { matchComparator, parseRecord, parseSet } from "../helpers";
  *   rule,
  *   { attributeRecordValue: "dropPair", attributeRecordValueDuplicate: "keepFirst" }
  * );
- * console.log(element.attribs["data-config"]); // "id:123;name:test;class:btn"
+ * console.log(element.getAttribute("data-config")); // "id:123;name:test;class:btn"
  * console.log(result); // true
  * ```
  */
 export function enforceAttributeRecordValue(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rule: ReadonlyDeep<TagAttributeRecordValueRule>,
   errorHandling?: ErrorHandling,
 ): boolean {
@@ -149,11 +149,11 @@ export function enforceAttributeRecordValue(
     seen.add(key);
   }
 
-  element.attribs[attribute.key] = output
+  setAttributeValue(element, attribute.key, output
     .map(({ key, val }) => {
       return `${key}${rule.keyValueSeparator}${val}`;
     })
-    .join(rule.entrySeparator);
+    .join(rule.entrySeparator));
 
   return true;
 }
@@ -188,13 +188,13 @@ export function enforceAttributeRecordValue(
  *   rule,
  *   { attributeSetValue: "dropValue", attributeCollectionValueTooMany: "dropExtra" }
  * );
- * console.log(element.attribs.class); // "btn btn-primary"
+ * console.log(element.getAttribute("class")); // "btn btn-primary"
  * console.log(result); // true
  * ```
  */
 export function enforceAttributeSetValue(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rule: ReadonlyDeep<TagAttributeSetValueRule>,
   errorHandling?: ErrorHandling,
 ): boolean {
@@ -240,7 +240,7 @@ export function enforceAttributeSetValue(
     }
   }
 
-  element.attribs[attribute.key] = output.join(rule.delimiter);
+  setAttributeValue(element, attribute.key, output.join(rule.delimiter));
 
   return true;
 }
@@ -273,13 +273,13 @@ export function enforceAttributeSetValue(
  *   rule,
  *   "applyDefaultValue"
  * );
- * console.log(element.attribs.href); // "https://example.com"
+ * console.log(element.getAttribute("href")); // "https://example.com"
  * console.log(result); // true
  * ```
  */
 export function enforceAttributeSimpleValue(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rule: ReadonlyDeep<TagAttributeSimpleValueRule>,
   errorHandling?: TagAttributeValueErrorHandlingMode,
 ): boolean {
@@ -318,13 +318,13 @@ export function enforceAttributeSimpleValue(
  *   { mode: "simple", value: /^https?:\/\//, maxLength: 2000 },
  *   { attributeValue: "applyDefaultValue", attributeValueTooLong: "trimExcess" }
  * );
- * console.log(element.attribs.href); // "https://example.com"
+ * console.log(element.getAttribute("href")); // "https://example.com"
  * console.log(result); // true
  * ```
  */
 export function enforceAttributeValue(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rule: ReadonlyDeep<TagAttributeValueRule>,
   errorHandling?: ErrorHandling,
 ): boolean {
@@ -340,11 +340,11 @@ export function enforceAttributeValue(
       return false;
     }
 
-    attribute.value = element.attribs[attribute.key];
-
-    if (!Object.hasOwn(element.attribs, attribute.key)) {
+    const value = element.getAttribute(attribute.key);
+    if (value === null) {
       return true;
     }
+    attribute.value = value;
   }
 
   switch (rule.mode) {

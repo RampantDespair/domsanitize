@@ -1,18 +1,14 @@
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
-
-import { parseFragment } from "parse5";
-import { adapter } from "parse5-htmlparser2-tree-adapter";
 import { describe, expect, it } from "vitest";
 
 import { walkNode } from "../src/lib/walker";
+import { parseFragment } from "./support/dom";
 
 describe("walker", () => {
   describe("walkNode", () => {
     it("walks element nodes", () => {
       const html = "<div>Hello</div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -31,9 +27,8 @@ describe("walker", () => {
 
     it("handles nesting limits", () => {
       const html = "<div><div><div>Deep</div></div></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -55,9 +50,8 @@ describe("walker", () => {
 
     it("handles comment nodes when preserveComments is false", () => {
       const html = "<div><!-- comment -->Hello</div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -77,9 +71,8 @@ describe("walker", () => {
 
     it("handles comment nodes when preserveComments is true", () => {
       const html = "<div><!-- comment -->Hello</div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -99,9 +92,8 @@ describe("walker", () => {
 
     it("handles text nodes", () => {
       const html = "Hello World";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {};
@@ -116,9 +108,8 @@ describe("walker", () => {
 
     it("handles tag limits", () => {
       const html = "<div><span>1</span><span>2</span><span>3</span></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -142,9 +133,8 @@ describe("walker", () => {
 
     it("handles tag nesting limits", () => {
       const html = "<div><div><div>Nested</div></div></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -167,9 +157,8 @@ describe("walker", () => {
 
     it("handles disallowed tags", () => {
       const html = "<div><script>alert('xss')</script><p>Safe</p></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -189,9 +178,8 @@ describe("walker", () => {
 
     it("handles attributes", () => {
       const html = "<div class=\"test\" id=\"example\">Hello</div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -230,9 +218,8 @@ describe("walker", () => {
           <p>Paragraph 2</p>
         </div>
       `;
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -254,9 +241,8 @@ describe("walker", () => {
 
     it("handles error handling modes", () => {
       const html = "<div><script>alert('xss')</script></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -282,9 +268,8 @@ describe("walker", () => {
 
     it("handles empty elements", () => {
       const html = "<div></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -303,9 +288,8 @@ describe("walker", () => {
 
     it("handles self-closing elements", () => {
       const html = "<img src='test.jpg' /><br />";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -332,9 +316,8 @@ describe("walker", () => {
 
     it("handles top-level nesting limit exceeded", () => {
       const html = "<div><div><div>Deep</div></div></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -359,9 +342,8 @@ describe("walker", () => {
 
     it("handles attribute enforcement failure", () => {
       const html = "<div class=\"test\">Hello</div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -390,9 +372,8 @@ describe("walker", () => {
 
     it("handles tag children error handling that returns false", () => {
       const html = "<div><span>1</span><span>2</span><span>3</span></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -419,9 +400,8 @@ describe("walker", () => {
 
     it("handles tag nesting error handling that returns false", () => {
       const html = "<div><div><div>Nested</div></div></div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {
@@ -447,9 +427,8 @@ describe("walker", () => {
 
     it("handles attribute enforcement that returns false", () => {
       const html = "<div class=\"test\">Hello</div>";
-      const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
+      const frag: DocumentFragment = parseFragment(
         html,
-        { treeAdapter: adapter },
       );
 
       const options = {

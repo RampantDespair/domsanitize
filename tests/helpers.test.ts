@@ -1,7 +1,3 @@
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
-
-import { html } from "parse5";
-import { adapter } from "parse5-htmlparser2-tree-adapter";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +6,7 @@ import {
   parseSet,
   unwrapInParent,
 } from "../src/lib/helpers";
+import { createElement } from "./support/dom";
 
 describe("matchComparator", () => {
   it("matches '*' wildcard", () => {
@@ -103,19 +100,19 @@ describe("parseSet", () => {
 
 describe("unwrapInParent", () => {
   it("detaches element with no children", () => {
-    const parent = adapter.createElement("parent", html.NS.HTML, []);
-    const empty = adapter.createElement("empty", html.NS.HTML, []);
-    adapter.appendChild(parent, empty);
+    const parent = createElement("parent", []);
+    const empty = createElement("empty", []);
+    parent.appendChild(empty);
 
-    expect(parent.children).toHaveLength(1);
+    expect(parent.childNodes).toHaveLength(1);
     unwrapInParent(empty);
-    expect(parent.children).toHaveLength(0);
+    expect(parent.childNodes).toHaveLength(0);
   });
 
   it("detaches element that has children but no parent", () => {
-    const lone = adapter.createElement("lone", html.NS.HTML, []);
-    const childA = adapter.createElement("a", html.NS.HTML, []);
-    adapter.appendChild(lone, childA);
+    const lone = createElement("lone", []);
+    const childA = createElement("a", []);
+    lone.appendChild(childA);
 
     // No parent set. Should simply detach 'lone' (noop for the rest of the tree).
     unwrapInParent(lone);
@@ -124,29 +121,29 @@ describe("unwrapInParent", () => {
     // but there is no parent to insert into — the function exits via the 'no parent' branch.
     expect(lone.parentNode).toBeNull();
     // And it should still have its children (we didn't delete them here).
-    expect(lone.children).toHaveLength(1);
-    expect(lone.children[0]).toBe(childA);
+    expect(lone.childNodes).toHaveLength(1);
+    expect(lone.childNodes[0]).toBe(childA);
   });
 
   it("moves children before the next sibling if nextSibling exists", () => {
-    const parent = adapter.createElement("parent", html.NS.HTML, []);
-    const before = adapter.createElement("before", html.NS.HTML, []);
-    const target = adapter.createElement("target", html.NS.HTML, []);
-    const child1 = adapter.createElement("c1", html.NS.HTML, []);
-    const child2 = adapter.createElement("c2", html.NS.HTML, []);
-    const after = adapter.createElement("after", html.NS.HTML, []);
+    const parent = createElement("parent", []);
+    const before = createElement("before", []);
+    const target = createElement("target", []);
+    const child1 = createElement("c1", []);
+    const child2 = createElement("c2", []);
+    const after = createElement("after", []);
 
-    adapter.appendChild(parent, before);
-    adapter.appendChild(parent, target);
-    adapter.appendChild(parent, after);
-    adapter.appendChild(target, child1);
-    adapter.appendChild(target, child2);
+    parent.appendChild(before);
+    parent.appendChild(target);
+    parent.appendChild(after);
+    target.appendChild(child1);
+    target.appendChild(child2);
 
     // Initial order: [before, target(child1, child2), after]
     expect(
-      parent.children.map(
+      Array.from(parent.childNodes).map(
         (c) => {
-          return (c as Htmlparser2TreeAdapterMap["element"]).tagName;
+          return (c as Element).localName;
         },
       ),
     ).toEqual(["before", "target", "after"]);
@@ -155,9 +152,9 @@ describe("unwrapInParent", () => {
 
     // After unwrapping: children inserted before 'after'
     expect(
-      parent.children.map(
+      Array.from(parent.childNodes).map(
         (c) => {
-          return (c as Htmlparser2TreeAdapterMap["element"]).tagName;
+          return (c as Element).localName;
         },
       ),
     ).toEqual(["before", "c1", "c2", "after"]);
@@ -165,22 +162,22 @@ describe("unwrapInParent", () => {
   });
 
   it("appends children to parent when there is no nextSibling", () => {
-    const parent = adapter.createElement("parent", html.NS.HTML, []);
-    const before = adapter.createElement("before", html.NS.HTML, []);
-    const target = adapter.createElement("target", html.NS.HTML, []);
-    const child1 = adapter.createElement("c1", html.NS.HTML, []);
-    const child2 = adapter.createElement("c2", html.NS.HTML, []);
+    const parent = createElement("parent", []);
+    const before = createElement("before", []);
+    const target = createElement("target", []);
+    const child1 = createElement("c1", []);
+    const child2 = createElement("c2", []);
 
-    adapter.appendChild(parent, before);
-    adapter.appendChild(parent, target);
-    adapter.appendChild(target, child1);
-    adapter.appendChild(target, child2);
+    parent.appendChild(before);
+    parent.appendChild(target);
+    target.appendChild(child1);
+    target.appendChild(child2);
 
     // Initial order: [before, target(child1, child2)]
     expect(
-      parent.children.map(
+      Array.from(parent.childNodes).map(
         (c) => {
-          return (c as Htmlparser2TreeAdapterMap["element"]).tagName;
+          return (c as Element).localName;
         },
       ),
     ).toEqual(["before", "target"]);
@@ -189,9 +186,9 @@ describe("unwrapInParent", () => {
 
     // After unwrapping: children appended at the end
     expect(
-      parent.children.map(
+      Array.from(parent.childNodes).map(
         (c) => {
-          return (c as Htmlparser2TreeAdapterMap["element"]).tagName;
+          return (c as Element).localName;
         },
       ),
     ).toEqual(["before", "c1", "c2"]);

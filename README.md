@@ -190,6 +190,21 @@ const value = buildAllowedUrlRegex(["https"], ["example.com"], true);
 npm install domsanitize
 ```
 
+## Runtime environments
+
+Node.js uses jsdom and requires Node 24.15+ (24.x) or Node 26+. The existing synchronous `enforceHtml(html, options)` API remains available from `domsanitize`. Bundlers that resolve the `browser` export condition use the browser's native DOM; `domsanitize/browser` selects that entrypoint explicitly.
+
+To reuse an existing browser or jsdom window, import the factory from `domsanitize/core`. This entrypoint does not import jsdom:
+
+```typescript
+import { createEnforcer } from "domsanitize/core";
+
+const enforceHtml = createEnforcer(window);
+const result = enforceHtml("<p>Hello</p>", { tags: { p: {} } });
+```
+
+The factory parses fragments in a detached document without changing the supplied window's document. In Node.js, pass `new JSDOM("").window` as the window.
+
 ## Quick Start
 
 In this example, a `<div>` with an unknown `onclick` attribute and a `<p>` with disallowed class values are both cleaned up according to the schema.

@@ -1,56 +1,13 @@
+import type { DomEnvironment } from "./lib/dom/environment";
 import type { SchemaOptions } from "./types/schema";
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 
-import { parseFragment, serialize } from "parse5";
+import { createNodeDomEnvironment } from "./lib/dom/node";
+import { enforceWithEnvironment } from "./lib/enforce";
 
-import { handleTagChildrenError } from "./lib/handlers/direct";
-import { treeAdapter } from "./lib/tree-adapter";
-import { walkNode } from "./lib/walker";
+export { createEnforcer } from "./core";
+export type { DomWindow, SchemaOptions } from "./core";
 
-function enforceFragment(
-  frag: Htmlparser2TreeAdapterMap["documentFragment"],
-  options: SchemaOptions,
-): boolean {
-  if (
-    options.topLevelLimits?.children !== undefined &&
-    frag.children.length > options.topLevelLimits.children
-  ) {
-    if (
-      !handleTagChildrenError(
-        frag,
-        options.topLevelLimits.children,
-        options.errorHandling?.tagChildren,
-      )
-    ) {
-      return false;
-    }
-  }
-
-  let child = frag.firstChild;
-  while (child) {
-    const next = child.nextSibling;
-    walkNode(child, options, { rootNesting: 0, tagNesting: [] });
-    child = next;
-  }
-
-  // Unwrapping during traversal can increase the number of root children.
-  if (
-    options.topLevelLimits?.children !== undefined &&
-    frag.children.length > options.topLevelLimits.children
-  ) {
-    if (
-      !handleTagChildrenError(
-        frag,
-        options.topLevelLimits.children,
-        options.errorHandling?.tagChildren,
-      )
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
+let environment: DomEnvironment | undefined;
 
 /**
  * Enforces a schema on HTML content by removing or modifying elements and attributes
@@ -149,24 +106,6 @@ export function enforceHtml(html: string, options: SchemaOptions): string {
     return "";
   }
 
-  let fragment = parseFragment(html, { treeAdapter });
-
-  // Tree edits can create markup that the parser reparents or adds nodes to.
-  // Validate that resulting tree before returning, with a bounded retry count
-  // for schemas that continually recreate unstable markup (e.g. unwrapping tbody).
-  for (let pass = 0; pass < 10; pass++) {
-    if (!enforceFragment(fragment, options)) {
-      return "";
-    }
-
-    const output = serialize(fragment, { treeAdapter });
-    const reparsed = parseFragment(output, { treeAdapter });
-    if (serialize(reparsed, { treeAdapter }) === output) {
-      return output;
-    }
-
-    fragment = reparsed;
-  }
-
-  throw new Error("HTML schema enforcement did not stabilize after 10 passes");
+  environment ??= createNodeDomEnvironment();
+  return enforceWithEnvironment(html, options, environment);
 }

@@ -1,6 +1,5 @@
 import type { TagErrorHandlingMode } from "../../types/error-handling";
 import type { TagRule } from "../../types/tag";
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 import type { ReadonlyDeep } from "type-fest";
 
 import { handleTagError } from "../handlers/direct";
@@ -36,7 +35,7 @@ import { handleTagError } from "../handlers/direct";
  * ```
  */
 export function enforceTag(
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rule?: ReadonlyDeep<TagRule>,
   errorHandling?: TagErrorHandlingMode,
 ): rule is ReadonlyDeep<TagRule> {

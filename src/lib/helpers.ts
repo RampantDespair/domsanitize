@@ -1,23 +1,22 @@
 import type { TagAttributeValueComparator } from "../types/comparators";
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 
-import { html } from "parse5";
-import { adapter } from "parse5-htmlparser2-tree-adapter";
+import { htmlNamespace, isElementNode, removeNode } from "./dom/nodes";
 
 // HTML templates store their children in a separate content fragment.
 export function getChildContainer(
   node:
-    | Htmlparser2TreeAdapterMap["document"]
-    | Htmlparser2TreeAdapterMap["element"],
+    | Document | DocumentFragment
+    | Element,
 ):
-  | Htmlparser2TreeAdapterMap["documentFragment"]
-  | Htmlparser2TreeAdapterMap["element"] {
+  | Document
+  | DocumentFragment
+  | Element {
   if (
-    adapter.isElementNode(node) &&
-    node.tagName === "template" &&
-    adapter.getNamespaceURI(node) === html.NS.HTML
+    isElementNode(node) &&
+    node.localName === "template" &&
+    node.namespaceURI === htmlNamespace
   ) {
-    return adapter.getTemplateContent(node);
+    return (node as HTMLTemplateElement).content;
   }
 
   return node;
@@ -120,28 +119,16 @@ export function parseSet(input: string, delimiter: string): string[] {
 }
 
 export function unwrapInParent(
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
 ): void {
-  const { children } = getChildContainer(element);
-  if (children.length === 0) {
-    adapter.detachNode(element);
-    return;
-  }
-
   const parent = element.parentNode;
   if (!parent) {
-    adapter.detachNode(element);
     return;
   }
 
-  const next = element.nextSibling;
-  for (const child of children) {
-    if (next) {
-      adapter.insertBefore(parent, child, next);
-    } else {
-      adapter.appendChild(parent, child);
-    }
+  // DOM child lists are live and moving a node removes it from its old parent.
+  for (const child of Array.from(getChildContainer(element).childNodes)) {
+    parent.insertBefore(child, element);
   }
-
-  adapter.detachNode(element);
+  removeNode(element);
 }

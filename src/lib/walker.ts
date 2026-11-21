@@ -1,8 +1,6 @@
 import type { SchemaOptions, SchemaState } from "../types/schema";
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 
-import { adapter } from "parse5-htmlparser2-tree-adapter";
-
+import { isElementNode, removeNode } from "./dom/nodes";
 import { enforceAttributes } from "./enforcers/attributes";
 import { enforceTag } from "./enforcers/tags";
 import {
@@ -54,11 +52,11 @@ import { getChildContainer } from "./helpers";
  * - Top-level nesting limits are enforced before processing element nodes
  */
 export function walkNode(
-  node: Htmlparser2TreeAdapterMap["node"],
+  node: Node,
   options: SchemaOptions,
   state: SchemaState,
 ) {
-  if (adapter.isElementNode(node)) {
+  if (isElementNode(node)) {
     if (
       options.topLevelLimits?.nesting !== undefined &&
       state.rootNesting > options.topLevelLimits.nesting
@@ -82,16 +80,16 @@ export function walkNode(
 
     // Unwrapping promotes children into the parent; discarding leaves them attached
     // to the removed node. Validate promoted children at the removed node's depth.
-    if (parent && !node.parentNode && child?.parentNode === parent) {
+    if (parent && child?.parentNode === parent) {
       while (child && child !== nextSibling) {
-        const next: Htmlparser2TreeAdapterMap["childNode"] | null =
+        const next: ChildNode | null =
           child.nextSibling;
         walkNode(child, options, state);
         child = next;
       }
     }
-  } else if (adapter.isCommentNode(node) && !options.preserveComments) {
-    adapter.detachNode(node);
+  } else if (node.nodeType === 8 && !options.preserveComments) {
+    removeNode(node);
   } else {
     // TODO: Implement support for other node types
   }
@@ -164,11 +162,11 @@ export function walkNode(
  * the function returns early without processing child nodes.
  */
 function walkElement(
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   options: SchemaOptions,
   state: SchemaState,
 ) {
-  const tagName = element.tagName;
+  const tagName = element.localName;
   const tagRule =
     options.tags && Object.hasOwn(options.tags, tagName)
       ? options.tags[tagName]
@@ -189,7 +187,7 @@ function walkElement(
   // Children enforcement
   if (
     tagRule.limits?.children !== undefined &&
-    childContainer.children.length > tagRule.limits.children
+    childContainer.childNodes.length > tagRule.limits.children
   ) {
     if (
       !handleTagChildrenError(
@@ -245,7 +243,7 @@ function walkElement(
   // Unwrapping during traversal can increase this element's child count.
   if (
     tagRule.limits?.children !== undefined &&
-    childContainer.children.length > tagRule.limits.children
+    childContainer.childNodes.length > tagRule.limits.children
   ) {
     handleTagChildrenError(
       element,

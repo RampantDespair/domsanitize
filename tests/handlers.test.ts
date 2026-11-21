@@ -1,7 +1,3 @@
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
-
-import { html } from "parse5";
-import { adapter } from "parse5-htmlparser2-tree-adapter";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -18,20 +14,21 @@ import {
   handleTagAttributeCollectionValueTooManyError,
   handleTagAttributeRecordValueDuplicateError,
 } from "../src/lib/handlers/indirect";
+import { createElement, testDocument } from "./support/dom";
 
 describe("handlers/direct", () => {
   describe("handleTagAttributeError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("discards attribute", () => {
-      el.attribs.test = "value";
+      el.setAttribute("test", "value");
 
       const result = handleTagAttributeError(
         { key: "test", value: "value" },
@@ -40,7 +37,7 @@ describe("handlers/direct", () => {
       );
 
       expect(result).toBe(true);
-      expect(el.attribs.test).toBeUndefined();
+      expect(el.getAttribute("test")).toBeNull();
     });
 
     it("throws error by default", () => {
@@ -67,12 +64,12 @@ describe("handlers/direct", () => {
       );
 
       expect(result).toBe(false);
-      expect(base.children).toHaveLength(0);
+      expect(base.childNodes).toHaveLength(0);
     });
 
     it("unwraps element", () => {
-      const child = adapter.createElement("child", html.NS.HTML, []);
-      adapter.appendChild(el, child);
+      const child = createElement("child", []);
+      el.appendChild(child);
 
       const result = handleTagAttributeError(
         { key: "test", value: "value" },
@@ -81,19 +78,19 @@ describe("handlers/direct", () => {
       );
 
       expect(result).toBe(false);
-      expect(base.children).toHaveLength(1);
-      expect(base.children[0]).toBe(child);
+      expect(base.childNodes).toHaveLength(1);
+      expect(base.childNodes[0]).toBe(child);
     });
   });
 
   describe("handleTagAttributeRecordValueError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("drops pair", () => {
@@ -139,13 +136,13 @@ describe("handlers/direct", () => {
   });
 
   describe("handleTagAttributeSetValueError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("drops value", () => {
@@ -189,13 +186,13 @@ describe("handlers/direct", () => {
   });
 
   describe("handleTagAttributeValueError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("applies default value", () => {
@@ -213,7 +210,7 @@ describe("handlers/direct", () => {
       );
 
       expect(result).toBe(true);
-      expect(el.attribs.test).toBe("default");
+      expect(el.getAttribute("test")).toBe("default");
     });
 
     it("deletes attribute when no default value", () => {
@@ -222,7 +219,7 @@ describe("handlers/direct", () => {
         value: "*",
       };
 
-      el.attribs.test = "invalid";
+      el.setAttribute("test", "invalid");
 
       const result = handleTagAttributeValueError(
         { key: "test", value: "invalid" },
@@ -232,7 +229,7 @@ describe("handlers/direct", () => {
       );
 
       expect(result).toBe(true);
-      expect(el.attribs.test).toBeUndefined();
+      expect(el.getAttribute("test")).toBeNull();
     });
 
     it("handles default error handling", () => {
@@ -252,13 +249,13 @@ describe("handlers/direct", () => {
   });
 
   describe("handleTagAttributeValueTooLongError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("trims excess", () => {
@@ -276,7 +273,7 @@ describe("handlers/direct", () => {
       );
 
       expect(result).toBe(true);
-      expect(el.attribs.test).toBe("very long ");
+      expect(el.getAttribute("test")).toBe("very long ");
     });
 
     it("handles default error handling", () => {
@@ -297,72 +294,72 @@ describe("handlers/direct", () => {
   });
 
   describe("handleTagChildrenError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("discards element", () => {
-      const child1 = adapter.createElement("child1", html.NS.HTML, []);
-      const child2 = adapter.createElement("child2", html.NS.HTML, []);
-      const child3 = adapter.createElement("child3", html.NS.HTML, []);
+      const child1 = createElement("child1", []);
+      const child2 = createElement("child2", []);
+      const child3 = createElement("child3", []);
 
-      adapter.appendChild(el, child1);
-      adapter.appendChild(el, child2);
-      adapter.appendChild(el, child3);
+      el.appendChild(child1);
+      el.appendChild(child2);
+      el.appendChild(child3);
 
       const result = handleTagChildrenError(el, 2, "discardElement");
 
       expect(result).toBe(false);
-      expect(base.children).toHaveLength(0);
+      expect(base.childNodes).toHaveLength(0);
     });
 
     it("discards firsts", () => {
-      const child1 = adapter.createElement("child1", html.NS.HTML, []);
-      const child2 = adapter.createElement("child2", html.NS.HTML, []);
-      const child3 = adapter.createElement("child3", html.NS.HTML, []);
+      const child1 = createElement("child1", []);
+      const child2 = createElement("child2", []);
+      const child3 = createElement("child3", []);
 
-      adapter.appendChild(el, child1);
-      adapter.appendChild(el, child2);
-      adapter.appendChild(el, child3);
+      el.appendChild(child1);
+      el.appendChild(child2);
+      el.appendChild(child3);
 
       const result = handleTagChildrenError(el, 2, "discardFirsts");
 
       expect(result).toBe(true);
-      expect(el.children).toHaveLength(2);
-      expect(el.children[0]).toBe(child2);
-      expect(el.children[1]).toBe(child3);
+      expect(el.childNodes).toHaveLength(2);
+      expect(el.childNodes[0]).toBe(child2);
+      expect(el.childNodes[1]).toBe(child3);
     });
 
     it("discards lasts", () => {
-      const child1 = adapter.createElement("child1", html.NS.HTML, []);
-      const child2 = adapter.createElement("child2", html.NS.HTML, []);
-      const child3 = adapter.createElement("child3", html.NS.HTML, []);
+      const child1 = createElement("child1", []);
+      const child2 = createElement("child2", []);
+      const child3 = createElement("child3", []);
 
-      adapter.appendChild(el, child1);
-      adapter.appendChild(el, child2);
-      adapter.appendChild(el, child3);
+      el.appendChild(child1);
+      el.appendChild(child2);
+      el.appendChild(child3);
 
       const result = handleTagChildrenError(el, 2, "discardLasts");
 
       expect(result).toBe(true);
-      expect(el.children).toHaveLength(2);
-      expect(el.children[0]).toBe(child1);
-      expect(el.children[1]).toBe(child2);
+      expect(el.childNodes).toHaveLength(2);
+      expect(el.childNodes[0]).toBe(child1);
+      expect(el.childNodes[1]).toBe(child2);
     });
 
     it("throws error by default", () => {
-      const child1 = adapter.createElement("child1", html.NS.HTML, []);
-      const child2 = adapter.createElement("child2", html.NS.HTML, []);
-      const child3 = adapter.createElement("child3", html.NS.HTML, []);
+      const child1 = createElement("child1", []);
+      const child2 = createElement("child2", []);
+      const child3 = createElement("child3", []);
 
-      adapter.appendChild(el, child1);
-      adapter.appendChild(el, child2);
-      adapter.appendChild(el, child3);
+      el.appendChild(child1);
+      el.appendChild(child2);
+      el.appendChild(child3);
 
       expect(() => {
         handleTagChildrenError(el, 2);
@@ -370,28 +367,28 @@ describe("handlers/direct", () => {
     });
 
     it("throws error with throwError mode", () => {
-      const child1 = adapter.createElement("child1", html.NS.HTML, []);
-      const child2 = adapter.createElement("child2", html.NS.HTML, []);
-      const child3 = adapter.createElement("child3", html.NS.HTML, []);
+      const child1 = createElement("child1", []);
+      const child2 = createElement("child2", []);
+      const child3 = createElement("child3", []);
 
-      adapter.appendChild(el, child1);
-      adapter.appendChild(el, child2);
-      adapter.appendChild(el, child3);
+      el.appendChild(child1);
+      el.appendChild(child2);
+      el.appendChild(child3);
 
       expect(() => {
         handleTagChildrenError(el, 2, "throwError");
       }).toThrow();
     });
 
-    it("handles document element", () => {
-      const doc = adapter.createDocument();
-      const child1 = adapter.createElement("child1", html.NS.HTML, []);
-      const child2 = adapter.createElement("child2", html.NS.HTML, []);
-      const child3 = adapter.createElement("child3", html.NS.HTML, []);
+    it("handles document fragment", () => {
+      const doc = testDocument.createDocumentFragment();
+      const child1 = createElement("child1", []);
+      const child2 = createElement("child2", []);
+      const child3 = createElement("child3", []);
 
-      adapter.appendChild(doc, child1);
-      adapter.appendChild(doc, child2);
-      adapter.appendChild(doc, child3);
+      doc.appendChild(child1);
+      doc.appendChild(child2);
+      doc.appendChild(child3);
 
       expect(() => {
         handleTagChildrenError(doc, 2, "throwError");
@@ -400,31 +397,31 @@ describe("handlers/direct", () => {
   });
 
   describe("handleTagError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("discards element", () => {
       const result = handleTagError(el, "discardElement");
 
       expect(result).toBe(false);
-      expect(base.children).toHaveLength(0);
+      expect(base.childNodes).toHaveLength(0);
     });
 
     it("unwraps element", () => {
-      const child = adapter.createElement("child", html.NS.HTML, []);
-      adapter.appendChild(el, child);
+      const child = createElement("child", []);
+      el.appendChild(child);
 
       const result = handleTagError(el, "unwrapElement");
 
       expect(result).toBe(false);
-      expect(base.children).toHaveLength(1);
-      expect(base.children[0]).toBe(child);
+      expect(base.childNodes).toHaveLength(1);
+      expect(base.childNodes[0]).toBe(child);
     });
 
     it("throws error by default", () => {
@@ -441,20 +438,20 @@ describe("handlers/direct", () => {
   });
 
   describe("handleTagNestingError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("discards element", () => {
       const result = handleTagNestingError(el, 5, "discardElement");
 
       expect(result).toBe(false);
-      expect(base.children).toHaveLength(0);
+      expect(base.childNodes).toHaveLength(0);
     });
 
     it("throws error by default", () => {
@@ -469,8 +466,8 @@ describe("handlers/direct", () => {
       }).toThrow();
     });
 
-    it("handles document element", () => {
-      const doc = adapter.createDocument();
+    it("handles document fragment", () => {
+      const doc = testDocument.createDocumentFragment();
 
       expect(() => {
         handleTagNestingError(doc, 5, "throwError");
@@ -481,13 +478,13 @@ describe("handlers/direct", () => {
 
 describe("handlers/indirect", () => {
   describe("handleTagAttributeCollectionValueTooManyError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("drops extra values", () => {
@@ -532,13 +529,13 @@ describe("handlers/indirect", () => {
   });
 
   describe("handleTagAttributeRecordValueDuplicateError", () => {
-    let base: Htmlparser2TreeAdapterMap["element"];
-    let el: Htmlparser2TreeAdapterMap["element"];
+    let base: Element;
+    let el: Element;
 
     beforeEach(() => {
-      base = adapter.createElement("root", html.NS.HTML, []);
-      el = adapter.createElement("test", html.NS.HTML, []);
-      adapter.appendChild(base, el);
+      base = createElement("root", []);
+      el = createElement("test", []);
+      base.appendChild(el);
     });
 
     it("drops duplicates", () => {

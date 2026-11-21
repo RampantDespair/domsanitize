@@ -2,7 +2,6 @@ import type { TagAttributeErrorHandlingMode } from "../../types/error-handling";
 import type { TagAttributeValueRule } from "../../types/rules";
 import type { ErrorHandling } from "../../types/schema";
 import type { TagAttribute, TagAttributeKey } from "../../types/tag";
-import type { Htmlparser2TreeAdapterMap } from "parse5-htmlparser2-tree-adapter";
 import type { ReadonlyDeep } from "type-fest";
 
 import {
@@ -40,7 +39,7 @@ import { enforceAttributeValue } from "./attribute-values";
  */
 export function enforceAttribute(
   attribute: TagAttribute,
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rule?: ReadonlyDeep<TagAttributeValueRule>,
   errorHandling?: TagAttributeErrorHandlingMode,
 ): { globalProceed: boolean; localProceed: boolean; } {
@@ -78,12 +77,12 @@ export function enforceAttribute(
  *
  * // href is missing, so default value will be applied
  * const result = enforceRequiredAttributes(element, rules, { attributeValue: "applyDefaultValue" });
- * console.log(element.attribs.href); // "https://example.com"
+ * console.log(element.getAttribute("href")); // "https://example.com"
  * console.log(result); // true
  * ```
  */
 export function enforceRequiredAttributes(
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rules:
     | ReadonlyDeep<Record<TagAttributeKey, TagAttributeValueRule>>
     | undefined,
@@ -98,7 +97,7 @@ export function enforceRequiredAttributes(
       continue;
     }
 
-    if (rule.required && !Object.hasOwn(element.attribs, attrName)) {
+    if (rule.required && !element.hasAttribute(attrName)) {
       if (
         !handleTagAttributeValueError(
           { key: attrName, value: "" },
@@ -158,14 +157,15 @@ export function enforceRequiredAttributes(
  * ```
  */
 export function enforceAttributes(
-  element: Htmlparser2TreeAdapterMap["element"],
+  element: Element,
   rules:
     | ReadonlyDeep<Record<TagAttributeKey, TagAttributeValueRule>>
     | undefined,
   errorHandling?: ErrorHandling,
 ): boolean {
-  const attributes = element.attribs;
-  const keys = Object.keys(attributes);
+  const keys = Array.from(element.attributes, (attribute) => {
+    return attribute.name;
+  });
 
   // Fast path
   if (keys.length === 0) {
@@ -174,7 +174,10 @@ export function enforceAttributes(
 
   // Validate all present attributes against scoped rule or "*" fallback.
   for (const name of keys) {
-    const value = attributes[name];
+    const value = element.getAttribute(name);
+    if (value === null) {
+      continue;
+    }
     const rule = rules
       ? (Object.hasOwn(rules, name) ? rules[name] : undefined) ??
       (Object.hasOwn(rules, "*") ? rules["*"] : undefined)
