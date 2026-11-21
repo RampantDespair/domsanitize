@@ -4,7 +4,7 @@ Declarative schema-based HTML attribute validation. Define which tags, attribute
 
 ## Not a purification replacement
 
-domsanitize is **not** a purifier and does not aim to replace tools like [DOMPurify](https://github.com/cure53/DOMPurify). DOMPurify is excellent at removing malicious content and protecting against XSS. domsanitize solves a different problem: **structural conformance**. Use them together, DOMPurify to purify, domsanitize to enforce your schema.
+domsanitize is **not** a purifier and does not aim to replace tools like [DOMPurify](https://github.com/cure53/DOMPurify). DOMPurify is excellent at removing malicious content and protecting against XSS. domsanitize solves a different problem: **structural conformance**. Use domsanitize to enforce your schema and DOMPurify to purify the final markup before rendering.
 
 ## Features
 
@@ -205,6 +205,36 @@ const result = enforceHtml("<p>Hello</p>", { tags: { p: {} } });
 
 The factory parses fragments in a detached document without changing the supplied window's document. In Node.js, pass `new JSDOM("").window` as the window.
 
+### Using DOMPurify with the same window
+
+```typescript
+import createDOMPurify from "dompurify";
+import { createEnforcer } from "domsanitize/core";
+
+const enforceHtml = createEnforcer(window);
+const DOMPurify = createDOMPurify(window);
+const conformed = enforceHtml('<a href="https://example.com">Link</a>', {
+  errorHandling: { attribute: "discardAttribute", tag: "unwrapElement" },
+  tags: { a: { attributes: { href: { mode: "simple", value: "*" } } } },
+});
+const clean = DOMPurify.sanitize(conformed);
+```
+
+For Node.js, create `window` with `new JSDOM("").window` and pass it to both factories. DOMPurify is an optional integration, not a runtime dependency of domsanitize.
+
+Run purification after the last schema mutation. A schema can introduce an unsafe default even when its input was already purified; DOMPurify [warns that later modifications can undo sanitization](https://github.com/cure53/DOMPurify#is-there-any-foot-gun-potential). Final purification can remove required attributes or elements, so the final result is not guaranteed to satisfy every schema constraint. Do not reapply unsafe defaults after purification.
+
+### Parser compatibility
+
+Both entrypoints enforce the DOM produced by their runtime. Sharing a window with DOMPurify aligns the DOM implementation; it does not make the libraries' parsing contexts or policies identical. domsanitize uses a detached template to retain fragments such as standalone table cells.
+
+The compatibility suite records two differences between jsdom 31.0.1 and the tested native browsers:
+
+- For `<select><div>text</div><option>A</option></select>`, jsdom drops the `div` wrapper. Native browsers retain it, so it needs a schema rule or an unwrap/discard strategy.
+- For `<noscript><p>fallback</p></noscript>`, jsdom treats the inner markup as text. Chromium and WebKit expose the `p` as an element, so it needs its own rule. Firefox repeatedly escapes the markup during serialization; enforcement rejects it after ten passes with `HTML schema enforcement did not stabilize after 10 passes`, even if `p` is allowed. This Firefox limitation remains unresolved.
+
+All other captured compatibility fixtures share the same expected result. These cases are tested explicitly; byte-for-byte output parity across arbitrary inputs and browser versions is not guaranteed.
+
 ## Quick Start
 
 In this example, a `<div>` with an unknown `onclick` attribute and a `<p>` with disallowed class values are both cleaned up according to the schema.
@@ -262,3 +292,14 @@ console.log(result);
 //   <a href="https://example.com" target="_blank" rel="noopener">Link</a>
 // </div>
 ```
+
+## Running tests
+
+`npm test` runs the Node.js suite, including jsdom and DOMPurify interoperability. Native browser tests are separate:
+
+```bash
+npx playwright install --with-deps chromium firefox webkit
+npm run test:browser
+```
+
+The browser suite runs compatibility fixtures, DOMPurify composition, and detached-document checks in Chromium, Firefox, and WebKit. DOMPurify and the browser test tools are development dependencies only.

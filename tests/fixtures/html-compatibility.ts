@@ -1,6 +1,8 @@
 import type { SchemaOptions } from "../../src/types/schema";
 
 export interface HtmlOutputFixture {
+  // Explicit deviations observed in the native browser suite.
+  browserErrors?: Partial<Record<string, string>>;
   expected: string;
   input: string;
   name: string;
@@ -99,9 +101,14 @@ export const htmlOutputFixtures: HtmlOutputFixture[] = [
     options: allowTags("table", "tbody", "tr", "td"),
   },
   {
+    browserErrors: {
+      chromium: "Tag div is not allowed",
+      firefox: "Tag div is not allowed",
+      webkit: "Tag div is not allowed",
+    },
     expected: "<select>text<option value=\"a\">A</option></select>",
     input: "<select><div>text</div><option value=\"a\">A</option></select>",
-    name: "select parsing discards invalid wrappers",
+    name: "select wrapper handling",
     options: allowTags("select", "option"),
   },
   {
@@ -141,11 +148,16 @@ export const htmlOutputFixtures: HtmlOutputFixture[] = [
     options: allowTags("script"),
   },
   {
+    browserErrors: {
+      chromium: "Tag p is not allowed",
+      firefox: "HTML schema enforcement did not stabilize after 10 passes",
+      webkit: "Tag p is not allowed",
+    },
     expected: "<noscript><p title=\"literal\">fallback</p></noscript>",
     input: "<noscript><p title=\"literal\">fallback</p></noscript>",
     // A template in jsdom 31.0.1's main document escapes this text.
     // The DOM environment uses a detached document to preserve this baseline.
-    name: "noscript markup is text even without a p rule",
+    name: "noscript markup handling",
     options: allowTags("noscript"),
   },
   {
