@@ -30,7 +30,7 @@ for (const [name, enforce] of [
       })).toBe("<select>text<option value=\"a\">A</option></select>");
     });
 
-    it("handles allowed noscript contents or rejects non-stabilizing serialization", () => {
+    it("enforces parsed noscript children and preserves literal noscript text", () => {
       const run = () => {
         return enforce("<noscript><p title=\"literal\">fallback</p></noscript>", {
           errorHandling: { attribute: "discardAttribute" },
@@ -38,9 +38,8 @@ for (const [name, enforce] of [
         });
       };
       if (server.browser === "firefox") {
-        // Firefox escapes the text again on every serialization. The bounded
-        // normalization loop must reject it instead of returning unstable HTML.
-        expect(run).toThrow("HTML schema enforcement did not stabilize after 10 passes");
+        // Like jsdom, Firefox parses this as raw text, not a child p element.
+        expect(run()).toBe("<noscript><p title=\"literal\">fallback</p></noscript>");
       } else {
         expect(run()).toBe("<noscript><p>fallback</p></noscript>");
       }

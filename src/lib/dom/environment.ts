@@ -1,3 +1,5 @@
+import { serializeWithLiteralNoscript } from "./serialize";
+
 /** The DOM surface required from a browser or jsdom window. */
 export interface DomWindow {
   readonly document: Document;
@@ -20,6 +22,12 @@ export interface DomEnvironment {
  */
 export function createDomEnvironment(window: DomWindow): DomEnvironment {
   const document = window.document.implementation.createHTMLDocument("");
+  const probe = document.createElement("template");
+  probe.innerHTML = "<noscript>&</noscript>";
+  // Firefox parses noscript as raw text here but escapes it on serialization.
+  // Detect the mismatch rather than tying the fallback to a browser/version.
+  const escapesLiteralNoscript = probe.content.firstChild?.firstChild?.nodeType === 3 &&
+    probe.innerHTML === "<noscript>&amp;</noscript>";
 
   return {
     parse(html) {
@@ -29,7 +37,7 @@ export function createDomEnvironment(window: DomWindow): DomEnvironment {
       return {
         root: template.content,
         serialize() {
-          return template.innerHTML;
+          return escapesLiteralNoscript ? serializeWithLiteralNoscript(template) : template.innerHTML;
         },
       };
     },

@@ -231,7 +231,7 @@ Both entrypoints enforce the DOM produced by their runtime. Sharing a window wit
 The compatibility suite records two differences between jsdom 31.0.1 and the tested native browsers:
 
 - For `<select><div>text</div><option>A</option></select>`, jsdom drops the `div` wrapper. Native browsers retain it, so it needs a schema rule or an unwrap/discard strategy.
-- For `<noscript><p>fallback</p></noscript>`, jsdom treats the inner markup as text. Chromium and WebKit expose the `p` as an element, so it needs its own rule. Firefox repeatedly escapes the markup during serialization; enforcement rejects it after ten passes with `HTML schema enforcement did not stabilize after 10 passes`, even if `p` is allowed. This Firefox limitation remains unresolved.
+- For `<noscript><p>fallback</p></noscript>`, jsdom and Firefox treat the inner markup as text. Chromium and WebKit expose the `p` as an element, so it needs its own rule. Where native serialization escapes literal `noscript` text, domsanitize detects the mismatch and preserves that text, including inside nested templates, to keep repeated parsing stable.
 
 All other captured compatibility fixtures share the same expected result. These cases are tested explicitly; byte-for-byte output parity across arbitrary inputs and browser versions is not guaranteed.
 

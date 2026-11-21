@@ -150,7 +150,6 @@ export const htmlOutputFixtures: HtmlOutputFixture[] = [
   {
     browserErrors: {
       chromium: "Tag p is not allowed",
-      firefox: "HTML schema enforcement did not stabilize after 10 passes",
       webkit: "Tag p is not allowed",
     },
     expected: "<noscript><p title=\"literal\">fallback</p></noscript>",
