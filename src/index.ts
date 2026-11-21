@@ -7,6 +7,51 @@ import { handleTagChildrenError } from "./lib/handlers/direct";
 import { treeAdapter } from "./lib/tree-adapter";
 import { walkNode } from "./lib/walker";
 
+function enforceFragment(
+  frag: Htmlparser2TreeAdapterMap["documentFragment"],
+  options: SchemaOptions,
+): boolean {
+  if (
+    options.topLevelLimits?.children !== undefined &&
+    frag.children.length > options.topLevelLimits.children
+  ) {
+    if (
+      !handleTagChildrenError(
+        frag,
+        options.topLevelLimits.children,
+        options.errorHandling?.tagChildren,
+      )
+    ) {
+      return false;
+    }
+  }
+
+  let child = frag.firstChild;
+  while (child) {
+    const next = child.nextSibling;
+    walkNode(child, options, { rootNesting: 0, tagNesting: [] });
+    child = next;
+  }
+
+  // Unwrapping during traversal can increase the number of root children.
+  if (
+    options.topLevelLimits?.children !== undefined &&
+    frag.children.length > options.topLevelLimits.children
+  ) {
+    if (
+      !handleTagChildrenError(
+        frag,
+        options.topLevelLimits.children,
+        options.errorHandling?.tagChildren,
+      )
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /**
  * Enforces a schema on HTML content by removing or modifying elements and attributes
  * that do not conform to the provided rules.
@@ -18,6 +63,10 @@ import { walkNode } from "./lib/walker";
  * @param html - The HTML string to enforce the schema on
  * @param options - Configuration options that define the schema rules and behavior
  * @returns The conformed HTML string
+ *
+ * @remarks
+ * Output is reparsed and, if its serialization changes, enforced again.
+ * Schemas that do not produce stable markup within 10 passes cause an error.
  *
  * @example
  * ```typescript
@@ -100,48 +149,24 @@ export function enforceHtml(html: string, options: SchemaOptions): string {
     return "";
   }
 
-  const frag: Htmlparser2TreeAdapterMap["documentFragment"] = parseFragment(
-    html,
-    { treeAdapter },
-  );
+  let fragment = parseFragment(html, { treeAdapter });
 
-  if (
-    options.topLevelLimits?.children !== undefined &&
-    frag.children.length > options.topLevelLimits.children
-  ) {
-    if (
-      !handleTagChildrenError(
-        frag,
-        options.topLevelLimits.children,
-        options.errorHandling?.tagChildren,
-      )
-    ) {
+  // Tree edits can create markup that the parser reparents or adds nodes to.
+  // Validate that resulting tree before returning, with a bounded retry count
+  // for schemas that continually recreate unstable markup (e.g. unwrapping tbody).
+  for (let pass = 0; pass < 10; pass++) {
+    if (!enforceFragment(fragment, options)) {
       return "";
     }
-  }
 
-  let child = frag.firstChild;
-  while (child) {
-    const next = child.nextSibling;
-    walkNode(child, options, { rootNesting: 0, tagNesting: [] });
-    child = next;
-  }
-
-  // Unwrapping during traversal can increase the number of root children.
-  if (
-    options.topLevelLimits?.children !== undefined &&
-    frag.children.length > options.topLevelLimits.children
-  ) {
-    if (
-      !handleTagChildrenError(
-        frag,
-        options.topLevelLimits.children,
-        options.errorHandling?.tagChildren,
-      )
-    ) {
-      return "";
+    const output = serialize(fragment, { treeAdapter });
+    const reparsed = parseFragment(output, { treeAdapter });
+    if (serialize(reparsed, { treeAdapter }) === output) {
+      return output;
     }
+
+    fragment = reparsed;
   }
 
-  return serialize(frag, { treeAdapter });
+  throw new Error("HTML schema enforcement did not stabilize after 10 passes");
 }
