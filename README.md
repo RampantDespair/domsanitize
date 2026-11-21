@@ -27,7 +27,7 @@ const options: SchemaOptions = {
 
 ### Attribute Allowlisting
 
-Each tag defines exactly which attributes it accepts. Unlisted attributes are discarded, and a `"*"` wildcard rule can serve as a catch-all fallback for any attribute not explicitly named.
+Each tag defines exactly which attributes it accepts. A `"*"` wildcard rule can serve as a catch-all fallback for any attribute not explicitly named. Attributes with no matching rule throw an error by default; set `errorHandling.attribute: "discardAttribute"` to discard them instead.
 
 ```typescript
 tags: {
