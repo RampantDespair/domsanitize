@@ -1,9 +1,16 @@
 import type { SchemaOptions } from "../src/types/schema";
 
-import { parseFragment, serialize } from "parse5";
+import { JSDOM } from "jsdom";
 import { describe, expect, it, vi } from "vitest";
 
 import { enforceHtml } from "../src/index";
+
+function reserialize(html: string): string {
+  const fragment = JSDOM.fragment(html);
+  const template = fragment.ownerDocument.createElement("template");
+  template.content.appendChild(fragment);
+  return template.innerHTML;
+}
 
 const scopes: {
   errorPrefix: string;
@@ -51,7 +58,7 @@ describe.each(scopes)("limits after serialization: $name", ({ errorPrefix, optio
     const result = enforceHtml(input, schema);
 
     expect(result).toBe(mode === "discardElement" ? "" : `${prefix}${content}${suffix}`);
-    expect(serialize(parseFragment(result))).toBe(result);
+    expect(reserialize(result)).toBe(result);
     expect(enforceHtml(result, schema)).toBe(result);
   });
 
@@ -74,7 +81,7 @@ it("enforces the root limit after unwrapping a disallowed template", () => {
   });
 
   expect(result).toBe("<p></p>");
-  expect(parseFragment(result).childNodes).toHaveLength(1);
+  expect(JSDOM.fragment(result).childNodes).toHaveLength(1);
 });
 
 it("returns stable markup when no limits are configured", () => {
@@ -84,7 +91,7 @@ it("returns stable markup when no limits are configured", () => {
   });
 
   expect(result).toBe("<p>before</p><div>middle</div><p></p>");
-  expect(serialize(parseFragment(result))).toBe(result);
+  expect(reserialize(result)).toBe(result);
 });
 
 it("validates implicit elements introduced by reparsing", () => {

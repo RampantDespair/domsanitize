@@ -4,7 +4,7 @@ export default defineConfig({
   banner: { dts: "/// <reference lib=\"dom\" />" },
   clean: true,
   deps: {
-    neverBundle: ["jsdom", "parse5", "parse5-htmlparser2-tree-adapter", "postcss"],
+    neverBundle: ["jsdom"],
   },
   dts: true,
   entry: [
